@@ -79,3 +79,118 @@ dados_longos <- dados_brutos_num %>%
 
 # Confirmando a estrutura do formato longo
 glimpse(dados_longos)
+
+# ==============================================================================
+# PARTE 2: FUNDAMENTOS DOS TESTES DE HIPÓTESE
+# ==============================================================================
+
+# A transição da visualização para a estatística
+#
+# - A visualização (boxplots, gráficos de linhas) nos ajudou a OBSERVAR uma diferença.
+# - O teste estatístico nos ajudará a QUANTIFICAR a PROBABILIDADE de essa diferença
+#   ter ocorrido por mero acaso.
+#
+# Hipótese Nula (H0):
+#   - É a hipótese de "não diferença" ou "não efeito".
+#   - Ex: A média das medidas nas amostras infectadas é igual à média das não infectadas.
+#
+# Hipótese Alternativa (Ha):
+#   - É a hipótese que queremos provar.
+#   - Ex: A média das medidas nas amostras infectadas é diferente da média das não infectadas.
+#
+# Valor P (p-value):
+#   - É a probabilidade de obter os seus resultados (ou resultados mais extremos)
+#     se a Hipótese Nula (H0) for, na verdade, verdadeira.
+#   - Se o p-value é pequeno, é pouco provável que a H0 seja verdadeira. Rejeitamos H0.
+#   - Se o p-value é grande, é provável que a H0 seja verdadeira. Não rejeitamos H0.
+#
+# Nível de Significância (Alpha, α):
+#   - O ponto de corte para decidir se um p-value é "pequeno".
+#   - O valor mais comum é 0.05.
+#   - Se p <= 0.05: O resultado é estatisticamente significativo.
+#   - Se p > 0.05: O resultado NÃO é estatisticamente significativo.
+
+# ==============================================================================
+# PARTE 3: TESTE t DE STUDENT - COMPARANDO DOIS GRUPOS
+# ==============================================================================
+
+# O Teste t é ideal para comparar as médias de EXATAMENTE DOIS grupos.
+# Vamos aplicá-lo para comparar o status de infecção em cada dia separadamente.
+
+# Usaremos o 't.test()' do R.
+# A sintaxe 'Valor_Medida ~ Status' significa "compare a média de Valor_Medida
+# em função do grupo Status".
+# Usaremos 'var.equal = FALSE' para fazer o Teste t de Welch, que é mais robusto
+# e não assume que as variâncias dos grupos são iguais.
+
+# -- Teste t para o Dia 3 --
+cat("\n--- RESULTADOS DO TESTE t PARA O DIA 3 ---\n")
+teste_t_dia3 <- dados_longos %>%
+  filter(Dia == 3) %>% # Filtramos apenas os dados do Dia 3
+  t.test(Valor_Medida ~ Status, data = ., var.equal = FALSE)
+
+print(teste_t_dia3)
+
+
+# -- Teste t para o Dia 6 --
+cat("\n--- RESULTADOS DO TESTE t PARA O DIA 6 ---\n")
+teste_t_dia6 <- dados_longos %>%
+  filter(Dia == 6) %>%
+  t.test(Valor_Medida ~ Status, data = ., var.equal = FALSE)
+
+print(teste_t_dia6)
+
+# -- Teste t para o Dia 12 --
+cat("\n--- RESULTADOS DO TESTE t PARA O DIA 12 ---\n")
+teste_t_dia12 <- dados_longos %>%
+  filter(Dia == 12) %>%
+  t.test(Valor_Medida ~ Status, data = ., var.equal = FALSE)
+
+print(teste_t_dia12)
+
+# ==============================================================================
+# PARTE 4: ANÁLISE DE VARIÂNCIA (ANOVA) - MÚLTIPLOS FATORES
+# ==============================================================================
+
+# O que o Teste t não faz:
+# - Ele não compara o efeito de três ou mais grupos de uma vez (ex: Dia 3 vs Dia 6 vs Dia 12).
+# - Ele não avalia o efeito de múltiplos fatores (ex: Status E Dia) e como eles interagem.
+#
+# Para isso, usamos a ANOVA (Análise de Variância).
+
+# Modelo de ANOVA de Dois Fatores:
+# Vamos testar o efeito do 'Status', do 'Dia' e, mais importante,
+# da 'interação' entre 'Status' e 'Dia'.
+# Uma interação significativa nos diria que o efeito da infecção não é
+# o mesmo em todos os dias (exatamente o que queríamos investigar!).
+
+# Usamos a sintaxe 'aov(resposta ~ fator1 * fator2)'
+cat("\n--- RESULTADOS DA ANOVA DE DOIS FATORES ---\n")
+modelo_anova <- aov(Valor_Medida ~ Status * factor(Dia), data = dados_longos)
+
+# A função 'summary()' nos dá a tabela de resultados da ANOVA.
+summary(modelo_anova)
+
+# INTERPRETAÇÃO DA TABELA ANOVA:
+# - Olhe para a coluna 'Pr(>F)' (p-value).
+#
+# 1. Linha 'Status':
+#    - Testa o efeito principal do status de infecção, ignorando o tempo.
+#    - Provavelmente, o p-value será > 0.05. Isso significa que, em média,
+#      ao longo de todo o experimento, não houve um efeito geral significativo
+#      da infecção.
+#
+# 2. Linha 'factor(Dia)':
+#    - Testa o efeito principal do tempo, ignorando o status.
+#    - Provavelmente, o p-value será > 0.05. Isso significa que, em média,
+#      ao longo do tempo, o valor da medida não variou significativamente em geral.
+#
+# 3. Linha 'Status:factor(Dia)':
+#    - Esta é a linha da INTERAÇÃO!
+#    - Ela testa se o efeito da infecção no valor da medida muda ao longo dos dias.
+#    - Provavelmente, o p-value será > 0.05.
+#
+# Conclusão da ANOVA:
+# A ausência de uma interação significativa nos diz que o efeito do 'Status'
+# é consistente ao longo dos dias. O que vimos visualmente (pequena diferença no Dia 6)
+# não foi estatisticamente forte o suficiente para ser considerado uma interação.
